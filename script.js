@@ -1,93 +1,85 @@
-const container = document.querySelector(".container");
-const form = document.querySelector("form");
-const search = document.querySelector("#search");
-
 const APIURL = "https://api.github.com/users/";
 
-const getUser = async (username) => {
+const main = document.getElementById("main");
+const form = document.getElementById("form");
+const search = document.getElementById("search");
+
+async function getUser(username) {
   try {
     const { data } = await axios(APIURL + username);
-    userCard(data);
-    getRepo(username);
-  } catch (error) {
-    if (error.response.status === 404) {
-      showErrorMessage("No profile with this username!");
-    } else {
-      showErrorMessage("An error occurred. Please try again later");
+
+    createUserCard(data);
+    getRepos(username);
+  } catch (err) {
+    if (err.response.status == 404) {
+      createErrorCard("No profile with this username");
     }
   }
-};
+}
 
-const getRepo = async (username) => {
+async function getRepos(username) {
   try {
     const { data } = await axios(APIURL + username + "/repos?sort=created");
-    reposCard(data);
-  } catch (error) {
-    showErrorMessage("An error occurred while fetching repositories");
-  }
-};
 
-const userCard = (user) => {
-  const userName = user.name ? user.name : "";
+    addReposToCard(data);
+  } catch (err) {
+    createErrorCard("Problem fetching repos");
+  }
+}
+
+function createUserCard(user) {
   const cardHTML = `
-      <div class="card">
-        <div class="user_custom">
-          <div class="sliceFunc">Joined: ${user.created_at.slice(0, 10)}</div>
-          <img src="${user.avatar_url}">
-          <div>${user.location ? user.location : ""}</div>
-        </div>
-        <div class="user_info">
-          <div class="user_desc">
-            <div class="user_name">${userName}</div>
-            ${user.bio ? `<div class="user_bio">${user.bio}</div>` : ""}
-          </div>
-          <div class="user_sub">
-            <div class="user_followers">Followers: ${user.followers}</div>
-            <div class="user_following">Following: ${user.following}</div>
-            <div class="user_repo">Repos: ${user.public_repos}</div>
-          </div>
-          ${user.public_repos > 0 ? '<div class="user_repos"></div>' : ""}
-        </div> 
-      </div> 
+    <div class="card">
+    <div>
+      <img src="${user.avatar_url}" alt="${user.name}" class="avatar">
+    </div>
+    <div class="user-info">
+      <h2>${user.name}</h2>
+      <p>${user.bio}</p>
+      <ul>
+        <li>${user.followers} <strong>Followers</strong></li>
+        <li>${user.following} <strong>Following</strong></li>
+        <li>${user.public_repos} <strong>Repos</strong></li>
+      </ul>
+      <div id="repos"></div>
+    </div>
+  </div>
     `;
-  container.innerHTML = cardHTML;
-};
-const reposCard = (repos) => {
-  const reposEl = document.querySelector(".user_repos");
+  main.innerHTML = cardHTML;
+}
 
-  if (repos.length === 0) {
-    reposEl.style.display = "none";
-    return;
-  }
+function createErrorCard(msg) {
+  const cardHTML = `
+        <div class="card">
+            <h1>${msg}</h1>
+        </div>
+    `;
 
-  repos.slice(0, 3).forEach((repo) => {
+  main.innerHTML = cardHTML;
+}
+
+function addReposToCard(repos) {
+  const reposEl = document.getElementById("repos");
+
+  repos.slice(0, 5).forEach((repo) => {
     const repoEl = document.createElement("a");
     repoEl.classList.add("repo");
     repoEl.href = repo.html_url;
     repoEl.target = "_blank";
     repoEl.innerText = repo.name;
+
     reposEl.appendChild(repoEl);
   });
-};
+}
 
-const inputBox = (event) => {
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+
   const user = search.value;
-  event.preventDefault();
 
   if (user) {
     getUser(user);
+
     search.value = "";
-  } else {
-    showErrorMessage("Please enter a username");
   }
-};
-
-form.addEventListener("submit", inputBox);
-
-const showErrorMessage = (message) => {
-  const errorDiv = document.createElement("div");
-  errorDiv.classList.add("error");
-  errorDiv.innerText = message;
-  container.innerHTML = "";
-  container.appendChild(errorDiv);
-};
+});
